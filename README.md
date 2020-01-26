@@ -39,8 +39,13 @@ the configurations of the linker script that will allow bossac to upload the bin
 The goal is to provide multiple common ways to upload/flash the executable to the MCU. So far, this project is targeting:
 
 - BOSSA
-- UF2 copying
+	+ The uploader Arduino uses.
+- UF2
+	+ Microsoft provides a UF2 converter script. This supports SAMDx boards right now.
 - Segger JLink
+	+ There is a cheaper education solution for non-commercial use. I highly suggest this option if you are wanting to better learn
+	embedded systems and bare-metal implementations. As a recent graduate, I have found the Segger to be extremely beneficial to
+	my education.
 
 The toolchain will search for these programs and include projects based off of available methods.
 
@@ -62,6 +67,7 @@ copy the output UF2 file to the Mass Storage device drive (also need to provide 
 - [ ] Better abstract example from SAMD51J20A specifics.
 - [ ] Clone Microsoft UF2 repository for SAMD packs and 'uf2conv.py' script.
 - [ ] Internally control copying of linker scripts from packs via CMake.
+- [ ] Support C++ programs.
 
 
 # Why
