@@ -7,6 +7,10 @@ SET ( CMAKE_SYSTEM_VERSION 1 )
 
 SET ( PACKS_REPO "C:/ProgramData/Atmel/AtmelStudio/7.0/packs")
 
+#
+#	ARM GCC Toolchain Configuration
+#
+
 SET ( CMAKE_C_COMPILER arm-none-eabi-gcc )
 SET ( CMAKE_CXX_COMPILER arm-none-eabi-g++ )
 SET ( CMAKE_OBJCOPY arm-none-eabi-objcopy )
@@ -16,24 +20,9 @@ SET ( CMAKE_C_STANDARD 99 )
 SET ( CMAKE_CXX_STANDARD 14 )
 
 
-
-if (NOT ARM_UPLOADTOOL)
-	SET (
-		ARM_UPLOADTOOL bossac
-		CACHE STRING "Set default upload tool: bossac"
-	)
-	find_program(ARM_UPLOADTOOL bossac)
-endif(NOT ARM_UPLOADTOOL)
-
-
-if (NOT UPLOAD_PORT)
-	SET (
-		UPLOAD_PORT COM4
-		CACHE STRING "Set upload port: COM<port_num>"
-	)
-endif(NOT UPLOAD_PORT)
-
-
+#
+#	Target-System Specific
+#
 if (NOT ARM_CPU)
 	set (
 		ARM_CPU cortex-m0
@@ -58,9 +47,50 @@ if (NOT SAM_MCU)
 endif(NOT SAM_MCU)
 
 
-#SET ( CMAKE_C_FLAGS "-x c -mthumb -I ${PACKS_REPO}/arm/CMSIS/5.4.0/CMSIS/Core/Include -I ${PACKS_REPO}/atmel/${ATMEL_ARCH}_DFP/1.2.139/samd51a/include -O1 -ffunction-sections -mlong-calls -g3 -Wall -std=gnu99 -MD -MP")
-#SET ( CMAKE_EXE_LINKER_FLAGS "-mthumb -Wl,--start-group -lm -Wl,--end-group -L ${CMAKE_SOURCE_DIR}/scripts/gcc -T ${SAM_MCU}.ld")
+#
+#	Bossac Specific
+#
+if (NOT ARM_UPLOADTOOL)
+	SET (
+		ARM_UPLOADTOOL bossac
+		CACHE STRING "Set default upload tool: bossac"
+	)
+	find_program(ARM_UPLOADTOOL bossac)
+endif(NOT ARM_UPLOADTOOL)
 
+
+if (NOT UPLOAD_PORT)
+	SET (
+		UPLOAD_PORT COM4
+		CACHE STRING "Set upload port: COM<port_num>"
+	)
+endif(NOT UPLOAD_PORT)
+
+
+#
+#	UF2 Specific
+#
+if (NOT SHELL_COPY_COMMAND)
+	SET (
+		SHELL_COPY_COMMAND copy
+		CACHE STRING "Set shell copy command: default 'copy'"
+	)
+endif(NOT SHELL_COPY_COMMAND)
+
+
+if (NOT UF2_DRIVE_MOUNT)
+	SET (
+		UF2_DRIVE_MOUNT "D:"
+		CACHE STRING "Set the mount point the UF2 populates: default 'D:'"
+	)
+endif(NOT UF2_DRIVE_MOUNT)
+
+
+
+
+#
+#	Environment Configuring
+#
 
 
 # where is the target environment
@@ -74,7 +104,12 @@ SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 
-
+##
+#	FUNCTION add_sam_executable
+#
+#	PARAM EXECUTABLE_NAME The name of the executable.
+#	ARGN Any source files required by the executable.
+#
 function (add_sam_executable EXECUTABLE_NAME)
 
 	set (additional_source_files ${ARGN})
@@ -170,7 +205,7 @@ function (add_sam_executable EXECUTABLE_NAME)
 	#	Copy UF2 file to the MSC drive.
 	add_custom_target (
 		Flash_${UF2_OUTPUT_FILE}
-		copy bin\\${UF2_OUTPUT_FILE} D:
+		${SHELL_COPY_COMMAND} bin\\${UF2_OUTPUT_FILE} ${UF2_DRIVE_MOUNT}
 		VERBATIM
 		USES_TERMINAL
 		DEPENDS ${UF2_OUTPUT_FILE}
