@@ -8,7 +8,7 @@ developing for ATMEL SAM systems is the dependencies and a few additional script
 
 Inside of the build/ directory, there is a CMake toolchain file that is suppose to find the ARM toolchain, bossac, and other dependencies. The toolchain currently provides
 all utilities required to compile, link, and build a C program. The toolchain file 'sam_gcc.cmake' must be provided as an argument in the call to cmake. VS 2019 provides
-an addition method for specifying the toolchain which I will outline in vs_2019_setup.md.
+an addition method for specifying the toolchain which I will outline in [vs_2019_setup.md](/docs/vs_2019_setup.md).
 
 In addition to the toolchain, the CMake cache requires a few variables to be adjusted to the specifics of your platform:
 
@@ -24,9 +24,9 @@ Something to note: The typical linker scripts that come with the SAM<X>_DFP pack
 'samd51j20a_flash.ld', the FLASH start address and length are adjusted to meet the requirements of the UF2 specifications. Adafruit provides good documentation
 on the SAMD21 and SAMD51 concerning the offsets. Below is an example of SAMD51 offsetting:
 
-`code`
+```
 rom      (rx)  : ORIGIN = 0x00004000, LENGTH = 0x00100000 - 0x4000
-`code`
+```
 
 ## Current Status
 

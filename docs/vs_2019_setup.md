@@ -10,7 +10,7 @@ a table of the cached variables and their default values. You can either directl
 
 ## Configuring
 
-1. Specify the toolchain file
+1. Specify the toolchain file (navigate to /build/sam_gcc.cmake)
 ![toolchain_field](/docs/assets/cmakesettingsjson_toolchain.png)
 2. VS2019 provides default CMAKE_C_FLAGS. Ensure this field is empty to start.
 3. Fill out the fields in the CMakeSetting.json according to your system and as defined by [Building](https://github.com/jensen-miller/sam-cmake-template#building) section.
