@@ -20,7 +20,7 @@ In addition to the toolchain, the CMake cache requires a few variables to be adj
 
 ## Linking
 
-Something to note: The typical linker scripts that come with the SAM<X>_DFP pack are modified to be compatible with UF2 loading. Inside of the provided
+NOTE: The typical linker scripts that come with the SAM<X>_DFP pack are modified to be compatible with UF2 loading. Inside of the provided
 'samd51j20a_flash.ld', the FLASH start address and length are adjusted to meet the requirements of the UF2 specifications. Adafruit provides good documentation
 on the SAMD21 and SAMD51 concerning the offsets. Below is an example of SAMD51 offsetting:
 
