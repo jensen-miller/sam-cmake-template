@@ -95,6 +95,15 @@ a table of the cached variables and their default values. You can either directl
 ```
 
 
+## Projects
+
+VS2019 will generate the projects in the **CMake Targets View**. Switch to this view using the *Solution Explorer*. Thus far, the projects generated are:
+
+- Flash_(project-name)
+- Upload_(project-name)
+- *.bin, *.elf, *.uf2 Executables
+
+
 ## Troubleshooting
 
 - **Cannot find 'IoT-Debug' option**
