@@ -48,42 +48,57 @@ endif(NOT SAM_MCU)
 
 
 #
+#	Options
+#
+option (USE_UPLOADER "Are you using an uploader for the MCU?" OFF)
+option (USE_UF2_BOOTLOADER "Are you using a UF2 bootloader?" OFF)
+
+option (BUILD_HEX "Build *.hex" OFF)
+option (BUILD_LST "Build *.lst" OFF)
+
+
+
+#
 #	Bossac Specific
 #
-if (NOT ARM_UPLOADTOOL)
-	SET (
-		ARM_UPLOADTOOL bossac
-		CACHE STRING "Set default upload tool: bossac"
-	)
-	find_program(ARM_UPLOADTOOL bossac)
-endif(NOT ARM_UPLOADTOOL)
+if (USE_UPLOADER)
+	if (NOT ARM_UPLOADTOOL)
+		SET (
+			ARM_UPLOADTOOL bossac
+			CACHE STRING "Set default upload tool: bossac"
+		)
+		find_program(ARM_UPLOADTOOL bossac)
+	endif(NOT ARM_UPLOADTOOL)
 
 
-if (NOT UPLOAD_PORT)
-	SET (
-		UPLOAD_PORT COM4
-		CACHE STRING "Set upload port: COM<port_num>"
-	)
-endif(NOT UPLOAD_PORT)
+	if (NOT UPLOAD_PORT)
+		SET (
+			UPLOAD_PORT COM4
+			CACHE STRING "Set upload port: COM<port_num>"
+		)
+	endif(NOT UPLOAD_PORT)
+endif(USE_UPLOADER)
 
 
 #
 #	UF2 Specific
 #
-if (NOT SHELL_COPY_COMMAND)
-	SET (
-		SHELL_COPY_COMMAND copy
-		CACHE STRING "Set shell copy command: default 'copy'"
-	)
-endif(NOT SHELL_COPY_COMMAND)
+if (USE_UF2_BOOTLOADER)
+	if (NOT SHELL_COPY_COMMAND)
+		SET (
+			SHELL_COPY_COMMAND copy
+			CACHE STRING "Set shell copy command: default 'copy'"
+		)
+	endif(NOT SHELL_COPY_COMMAND)
 
 
-if (NOT UF2_DRIVE_MOUNT)
-	SET (
-		UF2_DRIVE_MOUNT "D:"
-		CACHE STRING "Set the mount point the UF2 populates: default 'D:'"
-	)
-endif(NOT UF2_DRIVE_MOUNT)
+	if (NOT UF2_DRIVE_MOUNT)
+		SET (
+			UF2_DRIVE_MOUNT "D:"
+			CACHE STRING "Set the mount point the UF2 populates: default 'D:'"
+		)
+	endif(NOT UF2_DRIVE_MOUNT)
+endif (USE_UF2_BOOTLOADER)
 
 
 
@@ -135,15 +150,15 @@ function (add_sam_executable EXECUTABLE_NAME)
 
 	##
 	#	Create ELF.
-	add_executable(${ELF_OUTPUT_FILE} EXCLUDE_FROM_ALL ${additional_source_files})
+	add_executable(${EXECUTABLE_NAME} EXCLUDE_FROM_ALL ${additional_source_files})
 
-	target_include_directories(${ELF_OUTPUT_FILE} PUBLIC "C:/ProgramData/Atmel/AtmelStudio/7.0/packs/arm/CMSIS/5.4.0/CMSIS/Core/Include" PUBLIC "C:/ProgramData/Atmel/AtmelStudio/7.0/packs/atmel/SAMD51_DFP/1.2.139/samd51a/include"  )
+	target_include_directories(${EXECUTABLE_NAME} PUBLIC "C:/ProgramData/Atmel/AtmelStudio/7.0/packs/arm/CMSIS/5.4.0/CMSIS/Core/Include" PUBLIC "C:/ProgramData/Atmel/AtmelStudio/7.0/packs/atmel/SAMD51_DFP/1.2.139/samd51a/include"  )
 	set_target_properties (
-		${ELF_OUTPUT_FILE}
+		${EXECUTABLE_NAME}
 		PROPERTIES
-			COMPILE_FLAGS "-x c -mthumb -DDEBUG -D__SAMD51J20A__ -O1 -ffunction-sections -mlong-calls -g3 -Wall -mcpu=cortex-m4 -c -std=gnu99 -MD -MP"# -MF \"Device_Startup/startup_samd51.d\" -MT\"Device_Startup/startup_samd51.d\" -MT\"Device_Startup/startup_samd51.o\"   -o \"Device_Startup/startup_samd51.o\" \"../Device_Startup/startup_samd51.c\""
+			COMPILE_FLAGS "-x c -mthumb -DDEBUG -D__SAMD51J20A__ -O1 -ffunction-sections -mlong-calls -g3 -Wall -mcpu=${ARM_CPU} -c -std=gnu99 -MD -MP"# -MF \"Device_Startup/startup_samd51.d\" -MT\"Device_Startup/startup_samd51.d\" -MT\"Device_Startup/startup_samd51.o\"   -o \"Device_Startup/startup_samd51.o\" \"../Device_Startup/startup_samd51.c\""
 			LINK_FLAGS "-mthumb -Wl,-Map=\"${EXECUTABLE_NAME}.map\" -Wl,--start-group -lm  -Wl,--end-group -L\"${CMAKE_SOURCE_DIR}\\scripts\\gcc\"  -Wl,--gc-sections -mcpu=${ARM_CPU} -T ${SAM_MCU}_flash.ld"
-	)
+	)	# TODO: Hardcoded -> DEBUG, __SAMD51J20A__
 
 
 
@@ -152,33 +167,7 @@ function (add_sam_executable EXECUTABLE_NAME)
 	add_custom_target (
 		${BIN_OUTPUT_FILE}
 		${CMAKE_OBJCOPY} -O binary ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ELF_OUTPUT_FILE} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${BIN_OUTPUT_FILE}
-		DEPENDS ${ELF_OUTPUT_FILE}
-	)
-
-
-
-	##
-	#	Create the UF2 file.
-	add_custom_target (
-		${UF2_OUTPUT_FILE}
-		python ${CMAKE_SOURCE_DIR}/scripts/uf2/uf2conv.py -c -b 0x4000 -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${UF2_OUTPUT_FILE} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${BIN_OUTPUT_FILE}
-		DEPENDS ${BIN_OUTPUT_FILE}
-	)
-	
-
-
-	##
-	#	Set the executable to default to the ELF.
-	add_custom_target(
-		${EXECUTABLE_NAME}
-		ALL
-		DEPENDS ${ELF_OUTPUT_FILE}
-	)
-
-	set_target_properties (
-		${EXECUTABLE_NAME}
-		PROPERTIES
-			OUTPUT_NAME ${ELF_OUTPUT_FILE}
+		DEPENDS ${EXECUTABLE_NAME}
 	)
 
 	get_directory_property (
@@ -190,25 +179,81 @@ function (add_sam_executable EXECUTABLE_NAME)
 	)
 
 
+	if (USE_UPLOADER)
+		##
+		#	Create utility project for uploading via BOSSA
+		add_custom_target (
+			"Upload_${EXECUTABLE_NAME}"
+			${ARM_UPLOADTOOL} -i -d --port=${UPLOAD_PORT} -U --offset=0x4000 -w -v ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${BIN_OUTPUT_FILE} -R
+			DEPENDS ${BIN_OUTPUT_FILE}
+		)
 
-	##
-	#	Create utility project for uploading via BOSSA
-	add_custom_target (
-		Upload_${EXECUTABLE_NAME}				
-		${ARM_UPLOADTOOL} -i -d --port=${UPLOAD_PORT} -U --offset=0x4000 -w -v ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${BIN_OUTPUT_FILE} -R
-		DEPENDS ${BIN_OUTPUT_FILE}
-	)
+		set_target_properties (
+			"Upload_${EXECUTABLE_NAME}"
+			PROPERTIES
+				FOLDER "deploy"
+		)
+	endif (USE_UPLOADER)
 
 
+	if (USE_UF2_BOOTLOADER)
+		##
+		#	Create the UF2 file.
+		add_custom_target (
+			${UF2_OUTPUT_FILE}
+			python ${CMAKE_SOURCE_DIR}/scripts/uf2/uf2conv.py -c -b 0x4000 -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${UF2_OUTPUT_FILE} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${BIN_OUTPUT_FILE}
+			DEPENDS ${BIN_OUTPUT_FILE}
+		)
 
-	##
-	#	Copy UF2 file to the MSC drive.
-	add_custom_target (
-		Flash_${UF2_OUTPUT_FILE}
-		${SHELL_COPY_COMMAND} bin\\${UF2_OUTPUT_FILE} ${UF2_DRIVE_MOUNT}
-		VERBATIM
-		USES_TERMINAL
-		DEPENDS ${UF2_OUTPUT_FILE}
-	)
+		##
+		#	Copy UF2 file to the MSC drive.
+		add_custom_target (
+			"Flash_${UF2_OUTPUT_FILE}"
+			${SHELL_COPY_COMMAND} bin\\${UF2_OUTPUT_FILE} ${UF2_DRIVE_MOUNT}
+			VERBATIM
+			USES_TERMINAL
+			DEPENDS ${UF2_OUTPUT_FILE}
+		)
+
+		set_target_properties (
+			"Flash_${UF2_OUTPUT_FILE}"
+			PROPERTIES
+				FOLDER "deploy"
+		)
+	endif(USE_UF2_BOOTLOADER)
 
 endfunction(add_sam_executable)
+
+
+##
+#
+function (add_sam_library LIBRARY_NAME)
+
+	set (additional_source_files ${ARGN})
+	list(LENGTH additional_source_files num_of_source_files)
+
+	if (num_of_source_files LESS 0)
+		message(FATAL_ERROR "No source files provided for ${LIBRARY_NAME}")
+	else()
+		foreach(src_file ${additional_source_files})
+			message (STATUS "Including source: ${src_file}")
+		endforeach()
+	endif()
+
+	set (STATICLIB_OUTPUT_FILE "${LIBRARY_NAME}.a")
+
+
+	##
+	#	Create static library.
+	add_library(${LIBRARY_NAME} STATIC EXCLUDE_FROM_ALL ${additional_source_files})
+
+	target_include_directories(${LIBRARY_NAME} PUBLIC "C:/ProgramData/Atmel/AtmelStudio/7.0/packs/arm/CMSIS/5.4.0/CMSIS/Core/Include" PUBLIC "C:/ProgramData/Atmel/AtmelStudio/7.0/packs/atmel/SAMD51_DFP/1.2.139/samd51a/include"  )
+	set_target_properties (
+		${LIBRARY_NAME}
+		PROPERTIES
+			COMPILE_FLAGS "-x c -mthumb -D__SAMD51J20A__ -DDEBUG -O1 -ffunction-sections -mlong-calls -g3 -Wall -mcpu=${ARM_CPU} -c -std=gnu99 -MD -MP -MF \"${LIBRARY_NAME}.d\"" #-MT\"library.d\" -MT\"library.o\"   -o \"library.o\" \".././library.c\""			
+			LINKER_LANGUAGE "C"
+			ARCHIVE_OUTPUT_NAME "${LIBRARY_NAME}"
+	) # TODO: __SAMD51J20A__ is hardcoded!
+
+endfunction(add_sam_library)
