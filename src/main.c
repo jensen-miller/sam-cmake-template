@@ -52,7 +52,7 @@ main(void)
 
     for (;;)
     {
-        for (unsigned i = 0; i < (48000000U / 2U); i++)
+        for (unsigned i = 0; i < (SystemCoreClock / 4U); i++)
         {
             /* Delay. . . */
         }
